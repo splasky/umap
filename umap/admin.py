@@ -42,6 +42,7 @@ class CSVExportMixin:
 class TileLayerAdmin(admin.ModelAdmin):
     list_display = (
         "name",
+        "layer_type",
         "rank",
     )
     list_editable = ("rank",)

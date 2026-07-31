@@ -37,6 +37,8 @@ def tilelayer_preview(tilelayer):
     """
     Return an <img> tag with a tile of the tilelayer.
     """
+    if tilelayer.layer_type == tilelayer.MAPLIBRE:
+        return tilelayer.name
     output = '<img src="{src}" alt="{alt}" title="{title}" />'
     url = tilelayer.url_template.format(s="a", z=9, x=265, y=181)
     output = output.format(src=url, alt=tilelayer.name, title=tilelayer.name)

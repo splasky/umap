@@ -1,24 +1,24 @@
 // Goes here all code related to Leaflet, DOM and user interactions.
 import {
   Browser,
+  GeoJSON,
   LatLng,
   LatLngBounds,
   Map as LeafletMap,
   Marker,
+  TileLayer,
   latLng,
   setOptions,
   stamp,
-  TileLayer,
-  GeoJSON,
 } from '../../../vendors/leaflet/leaflet-src.esm.js'
 import { Alert } from '../../components/alerts/alert.js'
-import { translate } from '../i18n.js'
 import * as GeoUtils from '../geoutils.js'
-import * as Utils from '../utils.js'
-import { LeafletIcon, layerClass } from './ui.js'
+import { translate } from '../i18n.js'
 import { Default as DefaultLayer } from '../rendering/layers/base.js'
 import { Cluster } from '../rendering/layers/cluster.js'
 import { Heat } from '../rendering/layers/heat.js'
+import * as Utils from '../utils.js'
+import { LeafletIcon, layerClass } from './ui.js'
 
 // Leaflet layers we override (but only for the *rendering* part, no compute/config…)
 const LAYER_MAP = { Cluster, Heat }
@@ -607,18 +607,40 @@ class TileLayerManager {
     }
   }
 
+  key(spec) {
+    if (!spec) return
+    return spec.layer_type === 'maplibre' ? spec.style_url : spec.url_template
+  }
+
   create(spec) {
-    const layer = new TileLayer(spec.url_template, spec)
-    layer.on('loading', () => this.app.loader.start(stamp(layer)))
-    layer.on('load', () => this.app.loader.stop(stamp(layer)))
+    const layer =
+      spec.layer_type === 'maplibre'
+        ? window.L.maplibreGL({ ...spec, style: spec.style_url })
+        : new TileLayer(spec.url_template, spec)
+    layer.options.layer_type = spec.layer_type || 'raster'
+    layer.options.url_template = spec.url_template
+    layer.options.style_url = spec.style_url
+    layer.toJSON = () => ({
+      layer_type: layer.options.layer_type,
+      minZoom: layer.options.minZoom,
+      maxZoom: layer.options.maxZoom,
+      attribution: layer.options.attribution,
+      url_template: layer.options.url_template,
+      style_url: layer.options.style_url,
+      name: layer.options.name,
+      tms: layer.options.tms,
+    })
+    layer.on?.('loading', () => this.app.loader.start(stamp(layer)))
+    layer.on?.('load', () => this.app.loader.stop(stamp(layer)))
     return layer
   }
 
   add(spec) {
-    if (!spec.url_template) return
-    if (this.all.has(spec.url_template)) return this.all.get(spec.url_template)
+    const key = this.key(spec)
+    if (!key) return
+    if (this.all.has(key)) return this.all.get(key)
     const layer = this.create(spec)
-    this.all.set(spec.url_template, layer)
+    this.all.set(key, layer)
     return layer
   }
 
@@ -630,7 +652,7 @@ class TileLayerManager {
   // if it is set, else the first of the registry.
   selectDefault() {
     const custom = this.app.properties.tilelayer
-    if (custom?.url_template && custom.attribution) {
+    if (this.key(custom) && custom.attribution) {
       this.select(this.add({ ...custom, rank: 0 }))
     } else {
       this.select(this.default())
@@ -647,6 +669,11 @@ class TileLayerManager {
       this.map.setZoom(maxZoom)
     }
     try {
+      if (tilelayer.options.layer_type === 'maplibre') {
+        this.map.setMinZoom(Math.max(this.map.getMinZoom(), 1))
+      } else if (this.current?.options.layer_type === 'maplibre') {
+        this.proxy.handleLimitBounds()
+      }
       this.map.addLayer(tilelayer)
       if (this.current) {
         this.map.removeLayer(this.current)
@@ -655,7 +682,9 @@ class TileLayerManager {
     } catch (e) {
       console.error(e)
       this.map.removeLayer(tilelayer)
-      Alert.error(`${translate('Error in the tilelayer URL')}: ${tilelayer._url}`)
+      Alert.error(
+        `${translate('Error in the tilelayer URL')}: ${tilelayer._url || tilelayer.options.style_url}`
+      )
       // Users can put tilelayer URLs by hand, and if they add wrong {variable},
       // Leaflet throw an error, and then the map is no more editable
     }

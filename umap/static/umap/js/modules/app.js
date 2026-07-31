@@ -998,11 +998,31 @@ export default class App extends Utils.WithEvents {
         { handler: 'BlurInput', placeholder: translate('display name') },
       ],
       [
+        'properties.tilelayer.layer_type',
+        {
+          handler: 'Select',
+          label: translate('Background type'),
+          selectOptions: [
+            ['raster', translate('Raster tiles')],
+            ['maplibre', translate('MapLibre style')],
+          ],
+        },
+      ],
+      [
         'properties.tilelayer.url_template',
         {
           handler: 'BlurInput',
           helpText: `${translate('Supported scheme')}: http://{s}.domain.com/{z}/{x}/{y}.png`,
           placeholder: 'url',
+          type: 'url',
+        },
+      ],
+      [
+        'properties.tilelayer.style_url',
+        {
+          handler: 'BlurInput',
+          helpText: translate('MapLibre style JSON URL'),
+          placeholder: 'style.json',
           type: 'url',
         },
       ],
@@ -1617,7 +1637,7 @@ export default class App extends Utils.WithEvents {
   // cf https://github.com/umap-project/umap/issues/585
   defaultEditDataLayer() {
     let layer = this.lastUsedDataLayer
-    if (layer && layer.allowFeatures() && layer.isVisible()) {
+    if (layer?.allowFeatures() && layer.isVisible()) {
       return layer
     }
     layer = this.layers.tree

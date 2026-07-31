@@ -118,8 +118,29 @@ class Licence(NamedModel):
 
 
 class TileLayer(NamedModel):
+    RASTER = "raster"
+    MAPLIBRE = "maplibre"
+    LAYER_TYPES = (
+        (RASTER, _("Raster")),
+        (MAPLIBRE, _("MapLibre")),
+    )
+
+    layer_type = models.CharField(
+        max_length=20,
+        choices=LAYER_TYPES,
+        default=RASTER,
+        help_text=_("Renderer used for this tile layer."),
+    )
     url_template = models.CharField(
-        max_length=400, help_text=_("URL template using OSM tile format")
+        max_length=400,
+        blank=True,
+        default="",
+        help_text=_("URL template using OSM tile format"),
+    )
+    style_url = models.URLField(
+        blank=True,
+        default="",
+        help_text=_("MapLibre style JSON URL."),
     )
     minZoom = models.IntegerField(default=0)
     maxZoom = models.IntegerField(default=18)

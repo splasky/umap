@@ -470,16 +470,26 @@ export class TilelayersControl extends SimpleButton {
   }
 
   addTileLayerElement(tilelayer, options) {
-    const src = Utils.template(
-      tilelayer.options.url_template,
-      TilelayersControl.DEMO_TILES_OPTIONS
-    )
-    const li = Utils.loadTemplate(Utils.sanitizeVars`
-      <li>
-        <img src="${src}" loading="lazy" />
-        <div>${tilelayer.options.name}</div>
-      </li>
-    `)
+    let li
+    if (tilelayer.options.layer_type === 'maplibre') {
+      li = Utils.loadTemplate(Utils.sanitizeVars`
+        <li>
+          <span class="icon icon-24 icon-tilelayer"></span>
+          <div>${tilelayer.options.name}</div>
+        </li>
+      `)
+    } else {
+      const src = Utils.template(
+        tilelayer.options.url_template,
+        TilelayersControl.DEMO_TILES_OPTIONS
+      )
+      li = Utils.loadTemplate(Utils.sanitizeVars`
+        <li>
+          <img src="${src}" loading="lazy" />
+          <div>${tilelayer.options.name}</div>
+        </li>
+      `)
+    }
     li.addEventListener('click', () => {
       const oldTileLayer = this.app.properties.tilelayer
       this.app.mapProxy.tilelayers.select(tilelayer)
@@ -560,6 +570,9 @@ class MiniMapControl extends Control {
   }
 
   _cloneLayer(layer) {
+    if (layer.options.layer_type === 'maplibre') {
+      return this.app.mapProxy.tilelayers.create(layer.toJSON())
+    }
     return new TileLayer(layer._url, Object.assign({}, layer.options))
   }
 }

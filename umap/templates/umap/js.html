@@ -40,6 +40,9 @@
         src="{% static 'umap/js/modules/leaflet-configure.js' %}"
         defer></script>
 <script src="{% static 'umap/vendors/heat/leaflet-heat.js' %}" defer></script>
+<script src="{% static 'umap/vendors/maplibre-gl/maplibre-gl.js' %}" defer></script>
+<script src="{% static 'umap/vendors/maplibre-gl-leaflet/leaflet-maplibre-gl.js' %}"
+        defer></script>
 {% if locale %}
   {% with "umap/locale/"|add:locale|add:".js" as path %}
     <script src="{% static path %}" defer></script>
